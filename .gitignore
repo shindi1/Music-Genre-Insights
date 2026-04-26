@@ -1,0 +1,74 @@
+# Credentials
+.env
+.env.local
+*.pem
+*.key
+
+# Data — never commit raw lyrics (copyright) or large processed files
+data/raw/*
+data/interim/*
+data/processed/*
+data/cache/*
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+!data/cache/.gitkeep
+
+# Logs
+logs/*.log
+logs/*.log.*
+
+# Reports (figures regenerable via `make eda`)
+reports/figures/*
+!reports/figures/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.tox/
+.nox/
+
+# Notebooks
+.ipynb_checkpoints/
+*.nbconvert.ipynb
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Data file types — block by default to be safe
+*.parquet
+*.feather
+*.npy
+*.npz
+*.pt
+*.pth
+*.joblib
+*.pkl
+# But not lockfiles or schema-only CSVs we explicitly want tracked
+!requirements.txt

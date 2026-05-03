@@ -18,7 +18,7 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
 from src.models.classifiers import MODEL_FACTORIES
-from src.models.evaluation import evaluate, print_metrics, save_confusion_matrix_plot
+from src.models.evaluation import evaluate, print_metrics, save_confusion_matrix_plot, save_genre_recall_plot
 from src.models.features import build_features
 
 PROCESSED_DIR = Path(__file__).parent.parent / "data" / "processed"
@@ -59,12 +59,12 @@ def main(model, data_dir, no_audio, no_lyric_numerics, max_features, seed):
     click.echo("\n=== validation ===")
     val_pred = le.inverse_transform(clf.predict(val_b.X))
     val_metrics = evaluate(le.inverse_transform(y_val), val_pred, labels=labels)
-    print_metrics(val_metrics)
+    print_metrics(val_metrics, labels=labels)
 
     click.echo("\n=== test ===")
     test_pred = le.inverse_transform(clf.predict(test_b.X))
     test_metrics = evaluate(le.inverse_transform(y_test), test_pred, labels=labels)
-    print_metrics(test_metrics)
+    print_metrics(test_metrics, labels=labels)
 
     out_dir = REPORTS_DIR / model
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -77,6 +77,11 @@ def main(model, data_dir, no_audio, no_lyric_numerics, max_features, seed):
         le.inverse_transform(y_test), test_pred, labels,
         out_dir / "confusion_matrix_test.png",
         title=f"{model} — test confusion matrix",
+    )
+    save_genre_recall_plot(
+        labels, test_metrics["per_class_recall"],
+        out_dir / "genre_recall_test.png",
+        title=f"{model} — genre prediction rate (test)",
     )
     click.echo(f"\nartifacts saved to {out_dir}/")
 

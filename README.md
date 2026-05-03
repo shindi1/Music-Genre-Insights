@@ -102,6 +102,14 @@ pip install -r requirements.txt
 
 Python 3.10+ required.
 
+**macOS only:** XGBoost needs OpenMP, which doesn't ship with the pip wheel. Install it once via Homebrew:
+
+```bash
+brew install libomp
+```
+
+Without this, `import xgboost` will fail with a `Library not loaded: @rpath/libomp.dylib` error.
+
 ### 2. Download the two Kaggle datasets
 
 The pipeline expects these two files in `data/raw/`:

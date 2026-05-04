@@ -1,0 +1,36 @@
+{
+  "mode": "audio",
+  "generated_at": "2026-05-04T22:07:33Z",
+  "row_counts": {
+    "full": 24000,
+    "train": 16736,
+    "val": 3587,
+    "test": 3587
+  },
+  "class_distribution": {
+    "train": {
+      "hip-hop": 2798,
+      "rock": 2797,
+      "electronic": 2797,
+      "pop": 2796,
+      "r&b": 2779,
+      "country": 2769
+    },
+    "val": {
+      "hip-hop": 600,
+      "rock": 600,
+      "electronic": 599,
+      "pop": 599,
+      "r&b": 595,
+      "country": 594
+    },
+    "test": {
+      "electronic": 600,
+      "hip-hop": 600,
+      "rock": 600,
+      "pop": 599,
+      "r&b": 595,
+      "country": 593
+    }
+  }
+}

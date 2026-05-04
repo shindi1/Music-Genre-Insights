@@ -7,12 +7,10 @@
 # Data — never commit raw lyrics (copyright) or large processed files
 data/raw/*
 data/interim/*
-data/processed/*
+data/interim/*
 data/cache/*
 !data/raw/.gitkeep
 !data/interim/.gitkeep
-!data/processed/.gitkeep
-!data/processed/metadata.json
 !data/cache/.gitkeep
 
 # Logs
@@ -64,6 +62,7 @@ Thumbs.db
 
 # Data file types — block by default to be safe
 *.parquet
+!data/processed/**/*.parquet
 !data/processed/*.parquet
 *.feather
 *.npy

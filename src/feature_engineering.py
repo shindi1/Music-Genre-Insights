@@ -23,7 +23,6 @@ from __future__ import annotations
 from collections import Counter
 from typing import Iterable, Optional, Tuple
 
-import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
@@ -128,34 +127,24 @@ class FeatureEngineer:
         return pd.concat([df.reset_index(drop=True), feats.reset_index(drop=True)], axis=1)
 
     # ----------------------------------------------------- audio scaling
-    def fit_audio_scaler(self, df: pd.DataFrame) -> StandardScaler:
-        """Fit StandardScaler on training-set audio features. Stores it on self."""
+    def fit_transform_audio(
+        self,
+        df: pd.DataFrame,
+        suffix: str = "_z",
+    ) -> pd.DataFrame:
+        """Fit scaler and apply it in one step. Returns a copy with `<feat>_z` columns."""
         present = [c for c in self.audio_features if c in df.columns]
         if not present:
             raise ValueError(
                 f"none of the expected audio features {self.audio_features} "
                 f"are present in df.columns ({list(df.columns)[:10]}...)"
             )
-        log.info("fitting audio-feature scaler on %d rows / %d features",
-                 len(df), len(present))
+        log.info("scaling audio features: %d rows / %d features", len(df), len(present))
         self._scaler = StandardScaler()
-        self._scaler.fit(df[present].values)
-        # Stash the columns we fitted on so transform() never accidentally
-        # re-orders or includes a different set.
+        scaled = self._scaler.fit_transform(df[present].values)
         self._fitted_cols = present
-        return self._scaler
-
-    def transform_audio(
-        self,
-        df: pd.DataFrame,
-        suffix: str = "_z",
-    ) -> pd.DataFrame:
-        """Apply the fitted scaler. Returns a *copy* with new `<feat>_z` columns."""
-        if self._scaler is None:
-            raise RuntimeError("call fit_audio_scaler() before transform_audio()")
         df = df.copy()
-        scaled = self._scaler.transform(df[self._fitted_cols].values)
-        for i, col in enumerate(self._fitted_cols):
+        for i, col in enumerate(present):
             df[f"{col}{suffix}"] = scaled[:, i]
         return df
 

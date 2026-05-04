@@ -27,7 +27,7 @@ from typing import Iterable, Iterator, List, Optional
 
 import pandas as pd
 
-from config import RAW_GENIUS_LYRICS, RAW_SPOTIFY_TRACKS
+from config import RAW_GENIUS_LYRICS, RAW_SPOTIFY_30K_HIGH, RAW_SPOTIFY_30K_LOW, RAW_SPOTIFY_TRACKS
 from src.utils import get_logger, memory_usage_mb, timer
 
 log = get_logger(__name__)
@@ -171,6 +171,42 @@ def load_spotify(
     df = df.loc[:, ~df.columns.str.match(r"Unnamed")]
 
     log.info("loaded Spotify: %d rows × %d cols (~%.0f MB)",
+             len(df), df.shape[1], memory_usage_mb(df))
+    return df
+
+
+def load_spotify_30k() -> pd.DataFrame:
+    """Load the 30K Spotify songs dataset (solomonameh/spotify-music-dataset).
+
+    Concatenates the high- and low-popularity splits, then normalizes column
+    names to match the 114K dataset so the rest of the pipeline works unchanged:
+        track_artist   -> artists
+        playlist_genre -> track_genre
+    """
+    keep = [
+        "artists", "track_name", "track_genre",
+        "danceability", "energy", "key", "loudness", "mode",
+        "speechiness", "acousticness", "instrumentalness",
+        "liveness", "valence", "tempo", "duration_ms",
+    ]
+
+    parts = []
+    for path in (RAW_SPOTIFY_30K_HIGH, RAW_SPOTIFY_30K_LOW):
+        if not path.exists():
+            raise FileNotFoundError(
+                f"30K Spotify file not found at {path}. Download from Kaggle:\n"
+                "  https://www.kaggle.com/datasets/solomonameh/spotify-music-dataset\n"
+                f"  Save as data/raw/{path.name}"
+            )
+        with timer(f"loading {path.name}"):
+            chunk = pd.read_csv(path, low_memory=False)
+        chunk = chunk.loc[:, ~chunk.columns.str.match(r"Unnamed")]
+        chunk = chunk.rename(columns={"track_artist": "artists", "playlist_genre": "track_genre"})
+        chunk = chunk[[c for c in keep if c in chunk.columns]]
+        parts.append(chunk)
+
+    df = pd.concat(parts, ignore_index=True).drop_duplicates()
+    log.info("loaded Spotify 30K: %d rows × %d cols (~%.0f MB)",
              len(df), df.shape[1], memory_usage_mb(df))
     return df
 

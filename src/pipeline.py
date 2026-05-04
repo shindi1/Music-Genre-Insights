@@ -49,6 +49,7 @@ from src.data_loader import (
     load_genius,
     load_genius_chunked,
     load_spotify,
+    load_spotify_30k,
     validate_genius,
     validate_spotify,
 )
@@ -106,6 +107,7 @@ class Pipeline:
     def stage_load(
         self,
         genius_sample_n: Optional[int] = None,
+        spotify_dataset: str = "114k",
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Load + validate the two raw datasets."""
         with timer("stage 1: load raw datasets"):
@@ -135,7 +137,7 @@ class Pipeline:
                     nrows=min(genius_sample_n * 3, 3_000_000),
                     sample_n=genius_sample_n,
                 )
-            spotify = load_spotify()
+            spotify = load_spotify_30k() if spotify_dataset == "30k" else load_spotify()
             validate_genius(genius)
             validate_spotify(spotify)
         return genius, spotify
@@ -243,12 +245,11 @@ class Pipeline:
         return df
 
     def stage_engineer_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Lyric numerics + audio scaler fit (transform happens later, per split)."""
+        """Lyric numerics + audio scaling."""
         with timer("stage 7: engineer lyric features"):
             df = self.featurizer.lyric_features(df, text_col="lyrics_clean")
-        with timer("stage 8: fit audio scaler"):
-            self.featurizer.fit_audio_scaler(df)
-            df = self.featurizer.transform_audio(df)
+        with timer("stage 8: scale audio features"):
+            df = self.featurizer.fit_transform_audio(df)
         return df
 
     def stage_balance(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -278,6 +279,7 @@ class Pipeline:
     def run_all(
         self,
         genius_sample_n: Optional[int] = None,
+        spotify_dataset: str = "114k",
         save_intermediate: bool = True,
         output_dir: Path = PROCESSED_DIR,
     ) -> dict:
@@ -285,30 +287,20 @@ class Pipeline:
         output_dir.mkdir(parents=True, exist_ok=True)
         INTERIM_DIR.mkdir(parents=True, exist_ok=True)
 
-        genius, spotify = self.stage_load(genius_sample_n=genius_sample_n)
-        if save_intermediate:
-            safe_to_parquet(genius, INTERIM_DIR / "01_genius_raw.parquet")
-            safe_to_parquet(spotify, INTERIM_DIR / "01_spotify_raw.parquet")
+        genius, spotify = self.stage_load(genius_sample_n=genius_sample_n, spotify_dataset=spotify_dataset)
 
         # Language filter + cheap length pre-filter before matching.
         # Full lyric cleaning is deferred until after matching so we only
         # clean the small matched subset instead of millions of rows.
         genius = self.stage_language_filter(genius)
-
         spotify, genius = self.stage_map_genres(spotify, genius)
-        if save_intermediate:
-            safe_to_parquet(spotify, INTERIM_DIR / "03_spotify_mapped.parquet")
-            safe_to_parquet(genius, INTERIM_DIR / "03_genius_mapped.parquet")
 
         matched = self.stage_match(genius, spotify)
         if save_intermediate:
             safe_to_parquet(matched, INTERIM_DIR / "04_matched.parquet")
 
         matched = self.stage_reconcile_genres(matched)
-
-        # Clean lyrics now — only on the matched subset.
         matched = self.stage_clean_lyrics(matched)
-
         matched = self.stage_engineer_features(matched)
         if save_intermediate:
             safe_to_parquet(matched, INTERIM_DIR / "05_features.parquet")

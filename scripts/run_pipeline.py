@@ -55,11 +55,13 @@ from src.utils import setup_logging
               help="Test split fraction.")
 @click.option("--val-size", type=click.FloatRange(0.0, 0.4), default=0.15,
               help="Validation split fraction.")
+@click.option("--spotify", type=click.Choice(["114k", "30k"]), default="114k",
+              help="Which Spotify dataset to use.")
 @click.option("--seed", type=int, default=42)
 @click.option("--log-level", type=click.Choice(["DEBUG", "INFO", "WARNING"]), default="INFO")
 def main(
     sample, output_dir, no_intermediate, match_threshold, samples_per_class,
-    min_words, max_words, test_size, val_size, seed, log_level,
+    min_words, max_words, test_size, val_size, spotify, seed, log_level,
 ):
     """Run the Cade data preparation pipeline end-to-end."""
     log_file = PROJECT_ROOT / "logs" / "pipeline.log"
@@ -89,6 +91,7 @@ def main(
     pipe = Pipeline(cfg)
     paths = pipe.run_all(
         genius_sample_n=sample,
+        spotify_dataset=spotify,
         save_intermediate=not no_intermediate,
         output_dir=output_dir,
     )

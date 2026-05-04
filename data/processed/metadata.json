@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-04T02:42:43Z",
+  "generated_at": "2026-05-04T06:39:16Z",
   "config": {
     "cleaning": {
       "remove_section_markers": true,
@@ -16,7 +16,7 @@
       "langdetect_seed": 42
     },
     "matching": {
-      "threshold": 87,
+      "threshold": 80,
       "blocking_field": "artist_norm",
       "score_cutoff": 80
     },
@@ -42,35 +42,35 @@
     ]
   },
   "row_counts": {
-    "full": 8060,
-    "train": 5642,
-    "val": 1209,
-    "test": 1209
+    "full": 6193,
+    "train": 4335,
+    "val": 929,
+    "test": 929
   },
   "class_distribution": {
     "train": {
-      "rock": 2750,
-      "pop": 1606,
-      "country": 465,
-      "electronic": 343,
-      "hip-hop": 250,
-      "r&b": 228
+      "rock": 1687,
+      "pop": 1582,
+      "electronic": 450,
+      "country": 287,
+      "hip-hop": 175,
+      "r&b": 154
     },
     "val": {
-      "rock": 589,
-      "pop": 344,
-      "country": 99,
-      "electronic": 74,
-      "hip-hop": 54,
-      "r&b": 49
+      "rock": 361,
+      "pop": 339,
+      "electronic": 96,
+      "country": 62,
+      "hip-hop": 38,
+      "r&b": 33
     },
     "test": {
-      "rock": 589,
-      "pop": 344,
-      "country": 99,
-      "electronic": 74,
-      "hip-hop": 54,
-      "r&b": 49
+      "rock": 362,
+      "pop": 339,
+      "electronic": 96,
+      "country": 61,
+      "hip-hop": 38,
+      "r&b": 33
     }
   }
 }

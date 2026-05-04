@@ -23,7 +23,8 @@ LOGS_DIR = PROJECT_ROOT / "logs"
 # Expected raw filenames (drop your Kaggle downloads here with these names)
 RAW_GENIUS_LYRICS = RAW_DIR / "song_lyrics.csv"          # carlosgdcj/genius-song-lyrics
 RAW_SPOTIFY_TRACKS = RAW_DIR / "dataset.csv"             # maharshipandya/-spotify-tracks-dataset
-RAW_SPOTIFY_30K = RAW_DIR / "spotify_songs.csv"          # solomonameh/spotify-music-dataset (optional)
+RAW_SPOTIFY_30K_HIGH = RAW_DIR / "high_popularity_spotify_data.csv"
+RAW_SPOTIFY_30K_LOW  = RAW_DIR / "low_popularity_spotify_data.csv"
 
 
 # --------------------------------------------------------------------------- #

@@ -47,6 +47,7 @@ from config import (
 from src.balancer import ClassBalancer
 from src.data_loader import (
     load_genius,
+    load_genius_chunked,
     load_spotify,
     validate_genius,
     validate_spotify,
@@ -108,37 +109,78 @@ class Pipeline:
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Load + validate the two raw datasets."""
         with timer("stage 1: load raw datasets"):
-            genius = load_genius(sample_n=genius_sample_n)
+            if genius_sample_n is None:
+                # Full run: stream in 500K-row chunks, pre-filter each chunk to
+                # English music rows before concatenating. Keeps peak RAM ~3-4 GB
+                # instead of the 20+ GB needed to load all 5M rows at once.
+                chunks = []
+                total_read = 0
+                for i, chunk in enumerate(load_genius_chunked(chunksize=500_000), start=1):
+                    total_read += len(chunk)
+                    chunk = chunk[
+                        chunk["language"].isin(["en"]) &
+                        (chunk["tag"] != "misc")
+                    ]
+                    chunks.append(chunk)
+                    log.info("  chunk %d: read %d rows total, kept %d after pre-filter",
+                             i, total_read, sum(len(c) for c in chunks))
+                genius = pd.concat(chunks, ignore_index=True)
+                # Restore category dtypes lost during concat across chunks
+                for col in ("tag", "language"):
+                    if col in genius.columns:
+                        genius[col] = genius[col].astype("category")
+                log.info("chunked load complete: %d rows after pre-filter", len(genius))
+            else:
+                genius = load_genius(
+                    nrows=min(genius_sample_n * 3, 3_000_000),
+                    sample_n=genius_sample_n,
+                )
             spotify = load_spotify()
             validate_genius(genius)
             validate_spotify(spotify)
         return genius, spotify
 
-    def stage_filter_clean(self, genius: pd.DataFrame) -> pd.DataFrame:
-        """Language filter + length filter + lyric cleaning."""
+    def stage_language_filter(self, genius: pd.DataFrame) -> pd.DataFrame:
+        """Language filter + cheap raw-word-count pre-filter (no regex cleaning yet).
+
+        Keeps only English rows and drops obvious instrumentals/garbage using a
+        raw whitespace split — fast enough to run on millions of rows.
+        """
         with timer("stage 2: language filter"):
             genius = self.lang_filter.filter_dataframe(genius, text_col="lyrics")
 
-        with timer("stage 3: clean lyrics"):
-            genius["lyrics_clean"] = self.cleaner.clean_batch(genius["lyrics"])
-            genius["word_count"] = [self.cleaner.word_count(t) for t in genius["lyrics_clean"]]
-
-        # Length filter
+        # Cheap length pre-filter on raw lyrics (no cleaning yet).
         cfg = self.config.cleaning
+        raw_wc = genius["lyrics"].str.split().str.len().fillna(0)
         before = len(genius)
         genius = genius[
-            genius["word_count"].between(cfg.min_word_count, cfg.max_word_count, inclusive="both")
+            raw_wc.between(cfg.min_word_count, cfg.max_word_count * 2, inclusive="both")
         ].reset_index(drop=True)
-        log.info(
-            "length filter [%d, %d]: %d -> %d rows",
-            cfg.min_word_count, cfg.max_word_count, before, len(genius),
-        )
+        log.info("raw length pre-filter: %d -> %d rows", before, len(genius))
+        return genius
 
-        # Drop rows where cleaning emptied the lyrics
-        before = len(genius)
-        genius = genius[genius["lyrics_clean"].str.len() > 0].reset_index(drop=True)
-        if before != len(genius):
-            log.info("dropped %d rows with empty post-clean lyrics", before - len(genius))
+    def stage_clean_lyrics(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Lyric cleaning + exact length filter — run AFTER matching so we only
+        clean the matched subset (~15-30K rows) instead of millions."""
+        with timer("stage 3: clean lyrics"):
+            df = df.copy()
+            lyrics_col = "lyrics_genius" if "lyrics_genius" in df.columns else "lyrics"
+            df["lyrics_clean"] = self.cleaner.clean_batch(df[lyrics_col])
+            df["word_count"] = [self.cleaner.word_count(t) for t in df["lyrics_clean"]]
+
+        cfg = self.config.cleaning
+        before = len(df)
+        df = df[
+            df["word_count"].between(cfg.min_word_count, cfg.max_word_count, inclusive="both")
+        ].reset_index(drop=True)
+        log.info("length filter [%d, %d]: %d -> %d rows",
+                 cfg.min_word_count, cfg.max_word_count, before, len(df))
+
+        before = len(df)
+        df = df[df["lyrics_clean"].str.len() > 0].reset_index(drop=True)
+        if before != len(df):
+            log.info("dropped %d rows with empty post-clean lyrics", before - len(df))
+        return df
 
         return genius
 
@@ -156,12 +198,16 @@ class Pipeline:
                 source="spotify",
                 drop_unmapped=False,
             )
+            # Keep all Genius rows that have a known music genre tag.
+            # 'misc' rows (~18% of the dataset) are books, speeches, and poems
+            # that will never match a Spotify track — drop them before matching
+            # to avoid wasting fuzzy-match iterations.
             genius = self.genre_mapper.annotate(
                 genius,
                 source_col="tag",
                 out_col="genre_genius",
                 source="genius",
-                drop_unmapped=False,
+                drop_unmapped=True,
             )
         return spotify, genius
 
@@ -244,9 +290,10 @@ class Pipeline:
             safe_to_parquet(genius, INTERIM_DIR / "01_genius_raw.parquet")
             safe_to_parquet(spotify, INTERIM_DIR / "01_spotify_raw.parquet")
 
-        genius = self.stage_filter_clean(genius)
-        if save_intermediate:
-            safe_to_parquet(genius, INTERIM_DIR / "02_genius_cleaned.parquet")
+        # Language filter + cheap length pre-filter before matching.
+        # Full lyric cleaning is deferred until after matching so we only
+        # clean the small matched subset instead of millions of rows.
+        genius = self.stage_language_filter(genius)
 
         spotify, genius = self.stage_map_genres(spotify, genius)
         if save_intermediate:
@@ -258,6 +305,10 @@ class Pipeline:
             safe_to_parquet(matched, INTERIM_DIR / "04_matched.parquet")
 
         matched = self.stage_reconcile_genres(matched)
+
+        # Clean lyrics now — only on the matched subset.
+        matched = self.stage_clean_lyrics(matched)
+
         matched = self.stage_engineer_features(matched)
         if save_intermediate:
             safe_to_parquet(matched, INTERIM_DIR / "05_features.parquet")

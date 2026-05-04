@@ -15,17 +15,10 @@ import pandas as pd
 from scipy.sparse import csr_matrix, hstack
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-AUDIO_FEATURE_COLS = [
-    "danceability_z", "energy_z", "loudness_z", "speechiness_z",
-    "acousticness_z", "instrumentalness_z", "liveness_z", "valence_z", "tempo_z",
-]
+from src.feature_engineering import DEFAULT_AUDIO_FEATURES, LYRIC_FEATURE_KEYS
 
-LYRIC_FEATURE_COLS = [
-    "lyr_word_count", "lyr_unique_word_count", "lyr_vocab_diversity",
-    "lyr_line_count", "lyr_avg_word_length", "lyr_avg_line_length",
-    "lyr_exclaim_density", "lyr_question_density",
-    "lyr_repetition_ratio", "lyr_uppercase_ratio",
-]
+AUDIO_FEATURE_COLS = [f"{f}_z" for f in DEFAULT_AUDIO_FEATURES]
+LYRIC_FEATURE_COLS = [f"lyr_{k}" for k in LYRIC_FEATURE_KEYS]
 
 
 @dataclass

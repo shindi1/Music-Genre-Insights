@@ -14,8 +14,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import click
+import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
+from sklearn.utils.class_weight import compute_sample_weight
 
 from src.models.classifiers import MODEL_FACTORIES
 from src.models.evaluation import evaluate, print_metrics, save_confusion_matrix_plot, save_genre_recall_plot
@@ -54,7 +56,11 @@ def main(model, data_dir, no_audio, no_lyric_numerics, max_features, seed):
 
     clf = MODEL_FACTORIES[model](seed=seed) if model != "knn" else MODEL_FACTORIES[model]()
     click.echo(f"training {model}...")
-    clf.fit(train_b.X, y_train)
+    if model == "xgboost":
+        sample_weights = compute_sample_weight("balanced", y_train)
+        clf.fit(train_b.X, y_train, sample_weight=sample_weights)
+    else:
+        clf.fit(train_b.X, y_train)
 
     click.echo("\n=== validation ===")
     val_pred = le.inverse_transform(clf.predict(val_b.X))

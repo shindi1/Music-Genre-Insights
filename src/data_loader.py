@@ -78,7 +78,6 @@ _SPOTIFY_DTYPES = {
 def load_genius(
     path: Path = RAW_GENIUS_LYRICS,
     columns: Optional[List[str]] = None,
-    chunksize: Optional[int] = None,
     nrows: Optional[int] = None,
     sample_n: Optional[int] = None,
     sample_seed: int = 42,
@@ -89,11 +88,8 @@ def load_genius(
         path: path to song_lyrics.csv.
         columns: subset of columns to keep. Default keeps everything we need
             for downstream stages.
-        chunksize: if given, read in chunks and concatenate. Useful for
-            memory-constrained environments.
         nrows: read only first N rows (debugging).
         sample_n: take a random sample of N rows after loading.
-            Cannot combine with chunksize.
 
     Returns:
         DataFrame.
@@ -111,24 +107,13 @@ def load_genius(
     use_dtypes = {c: _GENIUS_DTYPES[c] for c in columns if c in _GENIUS_DTYPES}
 
     with timer(f"loading Genius dataset from {path.name}"):
-        if chunksize:
-            chunks: Iterator[pd.DataFrame] = pd.read_csv(
-                path,
-                usecols=columns,
-                dtype=use_dtypes,
-                chunksize=chunksize,
-                nrows=nrows,
-                low_memory=False,
-            )
-            df = pd.concat(chunks, ignore_index=True)
-        else:
-            df = pd.read_csv(
-                path,
-                usecols=columns,
-                dtype=use_dtypes,
-                nrows=nrows,
-                low_memory=False,
-            )
+        df = pd.read_csv(
+            path,
+            usecols=columns,
+            dtype=use_dtypes,
+            nrows=nrows,
+            low_memory=False,
+        )
 
     log.info("loaded Genius: %d rows × %d cols (~%.0f MB)",
              len(df), df.shape[1], memory_usage_mb(df))

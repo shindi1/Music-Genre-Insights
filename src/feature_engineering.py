@@ -21,7 +21,7 @@ the numerics.
 from __future__ import annotations
 
 from collections import Counter
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -44,6 +44,13 @@ DEFAULT_AUDIO_FEATURES: Tuple[str, ...] = (
     "liveness",
     "valence",
     "tempo",
+)
+
+LYRIC_FEATURE_KEYS: Tuple[str, ...] = (
+    "word_count", "unique_word_count", "vocab_diversity",
+    "line_count", "avg_word_length", "avg_line_length",
+    "exclaim_density", "question_density",
+    "repetition_ratio", "uppercase_ratio",
 )
 
 
@@ -152,7 +159,3 @@ class FeatureEngineer:
             df[f"{col}{suffix}"] = scaled[:, i]
         return df
 
-    # ------------------------------------------------------------ utilities
-    def feature_columns(self, df: pd.DataFrame, prefix: str = "lyr_", suffix: str = "_z") -> List[str]:
-        """Return all engineered numeric columns — handy for downstream models."""
-        return [c for c in df.columns if c.startswith(prefix) or c.endswith(suffix)]

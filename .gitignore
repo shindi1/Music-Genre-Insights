@@ -12,6 +12,7 @@ data/cache/*
 !data/raw/.gitkeep
 !data/interim/.gitkeep
 !data/processed/.gitkeep
+!data/processed/metadata.json
 !data/cache/.gitkeep
 
 # Logs
@@ -63,6 +64,7 @@ Thumbs.db
 
 # Data file types — block by default to be safe
 *.parquet
+!data/processed/*.parquet
 *.feather
 *.npy
 *.npz

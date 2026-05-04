@@ -8,9 +8,9 @@ from sklearn.neighbors import KNeighborsClassifier
 def make_logistic(seed: int = 42) -> LogisticRegression:
     """Multinomial logistic regression baseline."""
     return LogisticRegression(
-        max_iter=5000,
-        C=1.0,
+        max_iter=10000,
         solver="lbfgs",
+        C=1.0,
         class_weight="balanced",
         random_state=seed,
     )

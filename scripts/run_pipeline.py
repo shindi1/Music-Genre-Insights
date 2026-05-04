@@ -1,95 +1,58 @@
-"""Main CLI entry point for the Cade data pipeline.
+"""Run the data pipeline in audio or lyrics mode.
 
 Examples:
-    # Run on a 100k-row sample of Genius (fast — for development)
-    python scripts/run_pipeline.py --sample 100000
-
-    # Full run with custom output directory
-    python scripts/run_pipeline.py --output-dir data/processed_v2
-
-    # Skip intermediate parquet files (saves disk)
-    python scripts/run_pipeline.py --no-intermediate
-
-    # Tighter matching threshold + smaller per-class cap
-    python scripts/run_pipeline.py --match-threshold 92 --samples-per-class 2000
+    python scripts/run_pipeline.py --mode audio
+    python scripts/run_pipeline.py --mode lyrics --sample 300000
+    python scripts/run_pipeline.py --mode audio --output-dir data/processed/audio
 """
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
-# Make `src` and `config` importable when running as a script
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 import click
 
-from config import (
-    PROCESSED_DIR,
-    BalancingConfig,
-    CleaningConfig,
-    MatchingConfig,
-    PipelineConfig,
-    SplitConfig,
-)
+from config import (PROCESSED_AUDIO_DIR, PROCESSED_LYRICS_DIR,
+                    BalancingConfig, CleaningConfig, PipelineConfig, SplitConfig)
 from src.pipeline import Pipeline
 from src.utils import setup_logging
 
 
 @click.command(context_settings=dict(show_default=True))
+@click.option("--mode", type=click.Choice(["audio", "lyrics"]), default="audio",
+              help="Feature source: audio features (Spotify) or lyrics (Genius).")
 @click.option("--sample", type=int, default=None,
-              help="Random-sample N rows of the Genius dataset (omit for full).")
-@click.option("--output-dir", type=click.Path(path_type=Path), default=PROCESSED_DIR,
-              help="Where to write processed parquet files.")
-@click.option("--no-intermediate", is_flag=True,
-              help="Skip writing intermediate parquet files at every stage.")
-@click.option("--match-threshold", type=click.IntRange(50, 100), default=87,
-              help="Min rapidfuzz score to accept a Genius<->Spotify match.")
-@click.option("--samples-per-class", type=int, default=4000,
-              help="Per-class cap for balanced training set.")
-@click.option("--min-words", type=int, default=50,
-              help="Drop songs with fewer than this many words after cleaning.")
-@click.option("--max-words", type=int, default=2000,
-              help="Drop songs with more than this many words (concat errors).")
-@click.option("--test-size", type=click.FloatRange(0.05, 0.4), default=0.15,
-              help="Test split fraction.")
-@click.option("--val-size", type=click.FloatRange(0.0, 0.4), default=0.15,
-              help="Validation split fraction.")
+              help="Lyrics mode only: random-sample N Genius rows.")
+@click.option("--output-dir", type=click.Path(path_type=Path), default=None,
+              help="Output directory (default: data/processed/audio or data/processed/lyrics)")
+@click.option("--samples-per-class", type=int, default=4000)
+@click.option("--test-size", type=click.FloatRange(0.05, 0.4), default=0.15)
+@click.option("--val-size", type=click.FloatRange(0.0, 0.4), default=0.15)
 @click.option("--seed", type=int, default=42)
 @click.option("--log-level", type=click.Choice(["DEBUG", "INFO", "WARNING"]), default="INFO")
-def main(
-    sample, output_dir, no_intermediate, match_threshold, samples_per_class,
-    min_words, max_words, test_size, val_size, seed, log_level,
-):
-    """Run the Cade data preparation pipeline end-to-end."""
-    log_file = PROJECT_ROOT / "logs" / "pipeline.log"
-    log = setup_logging(level=log_level, log_file=log_file)
+def main(mode, sample, output_dir, samples_per_class, test_size, val_size, seed, log_level):
+    log = setup_logging(level=log_level, log_file=PROJECT_ROOT / "logs" / "pipeline.log")
     log.info("=" * 70)
-    log.info("CADE DATA PIPELINE")
+    log.info("PIPELINE — mode=%s", mode)
     log.info("=" * 70)
 
     cfg = PipelineConfig(
-        cleaning=CleaningConfig(
-            min_word_count=min_words,
-            max_word_count=max_words,
-            langdetect_seed=seed,
-        ),
-        matching=MatchingConfig(threshold=match_threshold),
-        balancing=BalancingConfig(
-            samples_per_class=samples_per_class,
-            random_state=seed,
-        ),
-        splitting=SplitConfig(
-            test_size=test_size,
-            val_size=val_size,
-            random_state=seed,
-        ),
+        mode=mode,
+        balancing=BalancingConfig(samples_per_class=samples_per_class, random_state=seed),
+        splitting=SplitConfig(test_size=test_size, val_size=val_size, random_state=seed),
+        cleaning=CleaningConfig(langdetect_seed=seed),
     )
 
     pipe = Pipeline(cfg)
+    if output_dir is None:
+        output_dir = PROCESSED_AUDIO_DIR if mode == "audio" else PROCESSED_LYRICS_DIR
+
     paths = pipe.run_all(
+        mode=mode,
         genius_sample_n=sample,
-        save_intermediate=not no_intermediate,
         output_dir=output_dir,
     )
 

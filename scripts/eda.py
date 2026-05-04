@@ -1,19 +1,14 @@
 """Exploratory data analysis on the processed dataset.
 
-Generates a battery of plots and statistics that you can drop straight into
-your project report. Outputs go into reports/figures/.
+Generates a battery of plots and statistics for the project report.
+Outputs go into reports/figures/.
 
 Charts produced:
-    - Class distribution per split
+    - Class distribution
     - Audio-feature distributions by genre (boxplots)
     - Audio-feature correlation heatmap
-    - Lyric-length distributions by genre
-    - match_score histogram
-    - Top words per genre (frequency)
-    - Vocabulary diversity by genre
-
-These directly answer questions the team set in the proposal:
-    "if fast songs are all energetic, or which features most separate genres."
+    - Lyric-length distributions by genre (lyrics mode only)
+    - Top words per genre (lyrics mode only)
 """
 from __future__ import annotations
 
@@ -109,18 +104,6 @@ def fig_lyric_length(df: pd.DataFrame, out: Path) -> None:
     plt.close(fig)
 
 
-def fig_match_score(df: pd.DataFrame, out: Path) -> None:
-    if "match_score" not in df.columns:
-        return
-    fig, ax = plt.subplots(figsize=(7, 4))
-    ax.hist(df["match_score"], bins=30, edgecolor="black", color="#55a868")
-    ax.set_title("Fuzzy match score distribution")
-    ax.set_xlabel("rapidfuzz score (0-100)")
-    ax.set_ylabel("count")
-    fig.tight_layout()
-    fig.savefig(out, dpi=120)
-    plt.close(fig)
-
 
 def top_words_per_genre(df: pd.DataFrame, out: Path, top_k: int = 25) -> None:
     """Save a CSV of top words per genre using simple frequency (no IDF)."""
@@ -162,7 +145,6 @@ def main(input_dir: Path, out_dir: Path):
     fig_audio_boxplots(full, out_dir / "audio_features_by_genre.png")
     fig_correlation_heatmap(full, out_dir / "audio_feature_correlation.png")
     fig_lyric_length(full, out_dir / "lyric_length_by_genre.png")
-    fig_match_score(full, out_dir / "match_score_hist.png")
     top_words_per_genre(full, out_dir / "top_words_per_genre.csv")
 
     # Numerical summary

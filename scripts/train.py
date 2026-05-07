@@ -28,6 +28,7 @@ from src.models.classifiers import MODEL_FACTORIES
 from src.models.evaluation import (
     evaluate, print_metrics,
     save_confusion_matrix_plot, save_genre_recall_plot,
+    save_feature_importance_plot,
 )
 from src.models.features import build_features
 
@@ -73,7 +74,10 @@ def main(model, mode, data_dir, max_features, seed):
     y_test  = le.transform(test_b.y)
     labels  = list(le.classes_)
 
-    clf = MODEL_FACTORIES[model](seed=seed) if model != "knn" else MODEL_FACTORIES[model]()
+    if model == "knn":
+        clf = MODEL_FACTORIES[model](mode=mode)
+    else:
+        clf = MODEL_FACTORIES[model](seed=seed, mode=mode)
     click.echo(f"training {model}...")
     if model == "xgboost":
         clf.fit(train_b.X, y_train,
@@ -110,6 +114,11 @@ def main(model, mode, data_dir, max_features, seed):
         labels, test_metrics["per_class_recall"],
         out_dir / "genre_recall_test.png",
         title=f"{model} ({mode}) — genre prediction rate (test)",
+    )
+    save_feature_importance_plot(
+        clf, train_b.feature_names, labels,
+        out_dir / "feature_importance.png",
+        title=f"{model} ({mode}) — feature importance",
     )
     click.echo(f"\nartifacts saved to {out_dir}/")
 

@@ -73,6 +73,77 @@ def save_genre_recall_plot(
     plt.close(fig)
 
 
+def save_feature_importance_plot(
+    clf,
+    feature_names: list[str],
+    labels: list[str],
+    out_path: Path,
+    title: str = "Feature Importance",
+    top_n: int = 15,
+) -> None:
+    """Save a feature importance plot.
+
+    - XGBoost: built-in feature_importances_ (gain), top_n features
+    - Logistic: mean |coef| across classes for audio; top words per genre for lyrics
+    - Other models: skipped silently
+    """
+    import matplotlib.pyplot as plt
+
+    model_name = type(clf).__name__
+
+    if model_name == "XGBClassifier":
+        importances = clf.feature_importances_
+        indices = np.argsort(importances)[-top_n:]
+        names = [feature_names[i] for i in indices]
+        scores = importances[indices]
+
+        fig, ax = plt.subplots(figsize=(7, max(4, top_n * 0.35)))
+        ax.barh(names, scores, color="steelblue")
+        ax.set_xlabel("Feature importance (gain)")
+        ax.set_title(title)
+        plt.tight_layout()
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(out_path, dpi=120)
+        plt.close(fig)
+
+    elif model_name == "LogisticRegression":
+        coef = clf.coef_  # (n_classes, n_features)
+        tfidf_mask = [f.startswith("tfidf::") for f in feature_names]
+        is_lyrics = any(tfidf_mask)
+
+        if is_lyrics:
+            # Top words per genre by coefficient value
+            tfidf_idx = [i for i, m in enumerate(tfidf_mask) if m]
+            words = [feature_names[i].replace("tfidf::", "") for i in tfidf_idx]
+            n_top = 10
+            n_classes = len(labels)
+            fig, axes = plt.subplots(1, n_classes, figsize=(3 * n_classes, 5), sharey=False)
+            for i, (label, ax) in enumerate(zip(labels, axes)):
+                class_coef = coef[i, tfidf_idx]
+                top_idx = np.argsort(class_coef)[-n_top:]
+                ax.barh([words[j] for j in top_idx], class_coef[top_idx], color="steelblue")
+                ax.set_title(label, fontsize=10)
+                ax.tick_params(labelsize=8)
+            fig.suptitle(title)
+            plt.tight_layout()
+        else:
+            # Audio: mean absolute coefficient across classes
+            mean_abs = np.abs(coef).mean(axis=0)
+            indices = np.argsort(mean_abs)
+            names = [feature_names[i] for i in indices]
+            scores = mean_abs[indices]
+
+            fig, ax = plt.subplots(figsize=(7, max(4, len(names) * 0.4)))
+            ax.barh(names, scores, color="steelblue")
+            ax.set_xlabel("Mean |coefficient| across genres")
+            ax.set_title(title)
+            plt.tight_layout()
+
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(out_path, dpi=120)
+        plt.close(fig)
+
+
 def save_confusion_matrix_plot(
     y_true: np.ndarray,
     y_pred: np.ndarray,

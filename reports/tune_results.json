@@ -1,0 +1,13 @@
+{
+  "xgboost/audio": {
+    "params": {
+      "colsample_bytree": 0.8,
+      "learning_rate": 0.05,
+      "max_depth": 4,
+      "min_child_weight": 3,
+      "n_estimators": 500,
+      "subsample": 0.8
+    },
+    "val_macro_f1": 0.5314078952536995
+  }
+}

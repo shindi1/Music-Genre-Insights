@@ -1,0 +1,33 @@
+{
+  "silhouette_score": 0.05440314721553735,
+  "davies_bouldin_index": 2.9300713300591585,
+  "adjusted_rand_index": 0.07841607322262145,
+  "purity": 0.36355,
+  "n_clusters": 6,
+  "cluster_genre_map": {
+    "0": "rock",
+    "1": "country",
+    "2": "hip-hop",
+    "3": "hip-hop",
+    "4": "rock",
+    "5": "hip-hop"
+  },
+  "cluster_sizes": {
+    "1": 9612,
+    "4": 1505,
+    "2": 614,
+    "0": 2580,
+    "5": 3944,
+    "3": 1745
+  },
+  "bic": -54863.270884320555,
+  "aic": -57985.148467572326,
+  "log_likelihood_per_sample": 1.4693787116893082,
+  "converged": true,
+  "n_iter": 35,
+  "covariance_type": "full",
+  "model": "gmm",
+  "mode": "lyrics",
+  "data_split": "full",
+  "n_samples": 20000
+}

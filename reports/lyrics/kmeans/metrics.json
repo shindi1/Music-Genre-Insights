@@ -1,0 +1,29 @@
+{
+  "silhouette_score": 0.1781056577016225,
+  "davies_bouldin_index": 1.357642937765717,
+  "adjusted_rand_index": 0.09117277720847289,
+  "purity": 0.3618,
+  "n_clusters": 7,
+  "cluster_genre_map": {
+    "0": "country",
+    "1": "hip-hop",
+    "2": "rock",
+    "3": "r&b",
+    "4": "hip-hop",
+    "5": "rock",
+    "6": "pop"
+  },
+  "cluster_sizes": {
+    "0": 6553,
+    "3": 6158,
+    "4": 99,
+    "2": 777,
+    "6": 2998,
+    "1": 3129,
+    "5": 286
+  },
+  "model": "kmeans",
+  "mode": "lyrics",
+  "data_split": "full",
+  "n_samples": 20000
+}

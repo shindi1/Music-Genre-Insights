@@ -1,0 +1,33 @@
+{
+  "silhouette_score": 0.012160293021764497,
+  "davies_bouldin_index": 6.165687959636426,
+  "adjusted_rand_index": 0.12408032639807888,
+  "purity": 0.3862083333333333,
+  "n_clusters": 6,
+  "cluster_genre_map": {
+    "0": "hip-hop",
+    "1": "electronic",
+    "2": "country",
+    "3": "r&b",
+    "4": "electronic",
+    "5": "electronic"
+  },
+  "cluster_sizes": {
+    "3": 1949,
+    "2": 7977,
+    "1": 1994,
+    "5": 2368,
+    "0": 6665,
+    "4": 3047
+  },
+  "bic": 300102.3826976105,
+  "aic": 297442.1515006409,
+  "log_likelihood_per_sample": -6.183003156263352,
+  "converged": true,
+  "n_iter": 54,
+  "covariance_type": "full",
+  "model": "gmm",
+  "mode": "audio",
+  "data_split": "full",
+  "n_samples": 24000
+}

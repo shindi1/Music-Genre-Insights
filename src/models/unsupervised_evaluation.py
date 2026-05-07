@@ -101,10 +101,83 @@ def print_clustering_metrics(metrics: dict) -> None:
     print(f"adjusted rand    : {metrics['adjusted_rand_index']:.4f}  (1.0 = perfect)")
     print(f"purity           : {metrics['purity']:.4f}  (random baseline ≈ {1/6:.3f})")
     print(f"n_clusters       : {metrics['n_clusters']}")
+    if "bic" in metrics:
+        print(f"BIC              : {metrics['bic']:.1f}  (lower = better fit/complexity tradeoff)")
+        print(f"AIC              : {metrics['aic']:.1f}  (lower = better fit/complexity tradeoff)")
+        print(f"log-likelihood   : {metrics['log_likelihood_per_sample']:.4f}  (per sample, higher better)")
+        print(f"covariance_type  : {metrics['covariance_type']}")
+        print(f"converged        : {metrics['converged']}  (n_iter={metrics['n_iter']})")
     print("\ncluster → dominant genre:")
     for cid, genre in sorted(metrics["cluster_genre_map"].items()):
         size = metrics["cluster_sizes"][cid]
         print(f"  cluster {cid}: {genre:<12} ({size} songs)")
+
+
+def evaluate_gmm_fit(gmm, X: np.ndarray) -> dict:
+    """BIC, AIC, and log-likelihood for a fitted GaussianMixture.
+
+    Call this after gmm.fit(X) and merge into the clustering metrics dict.
+    Lower BIC/AIC = better trade-off between fit quality and model complexity.
+    """
+    bic = float(gmm.bic(X))
+    aic = float(gmm.aic(X))
+    log_likelihood = float(gmm.score(X))  # per-sample average log-likelihood
+    return {
+        "bic":                   bic,
+        "aic":                   aic,
+        "log_likelihood_per_sample": log_likelihood,
+        "converged":             bool(gmm.converged_),
+        "n_iter":                int(gmm.n_iter_),
+        "covariance_type":       gmm.covariance_type,
+    }
+
+
+def save_bic_aic_plot(
+    X: np.ndarray,
+    k_range: range,
+    out_path: Path,
+    covariance_types: tuple[str, ...] = ("full", "tied", "diag", "spherical"),
+    seed: int = 42,
+    title: str = "GMM Model Selection — BIC & AIC",
+) -> None:
+    """Sweep n_components and covariance_type; plot BIC and AIC curves.
+
+    Lower BIC/AIC = better model. The elbow in BIC is the standard selection
+    criterion for GMMs. Sweep all four covariance types so you can compare
+    complexity vs. fit.
+    """
+    from sklearn.mixture import GaussianMixture
+
+    colors = {"full": "#4C72B0", "tied": "#DD8452", "diag": "#55A868", "spherical": "#C44E52"}
+    k_list = list(k_range)
+
+    fig, (ax_bic, ax_aic) = plt.subplots(1, 2, figsize=(13, 5), sharey=False)
+
+    for cov in covariance_types:
+        bics, aics = [], []
+        for k in k_list:
+            gmm = GaussianMixture(
+                n_components=k, covariance_type=cov,
+                n_init=3, random_state=seed,
+            )
+            gmm.fit(X)
+            bics.append(gmm.bic(X))
+            aics.append(gmm.aic(X))
+        ax_bic.plot(k_list, bics, "o-", color=colors[cov], label=cov)
+        ax_aic.plot(k_list, aics, "o-", color=colors[cov], label=cov)
+
+    for ax, metric_name in [(ax_bic, "BIC (lower = better)"), (ax_aic, "AIC (lower = better)")]:
+        ax.set_xlabel("Number of Components (k)")
+        ax.set_ylabel(metric_name)
+        ax.set_title(metric_name)
+        ax.set_xticks(k_list)
+        ax.legend(title="covariance_type", fontsize=8)
+
+    fig.suptitle(title)
+    plt.tight_layout()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
 
 
 def print_pca_metrics(metrics: dict) -> None:

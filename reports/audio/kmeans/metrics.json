@@ -1,0 +1,29 @@
+{
+  "silhouette_score": 0.17499660302395337,
+  "davies_bouldin_index": 1.511632656067173,
+  "adjusted_rand_index": 0.08637232366224798,
+  "purity": 0.37145833333333333,
+  "n_clusters": 7,
+  "cluster_genre_map": {
+    "0": "hip-hop",
+    "1": "country",
+    "2": "rock",
+    "3": "rock",
+    "4": "electronic",
+    "5": "electronic",
+    "6": "r&b"
+  },
+  "cluster_sizes": {
+    "1": 4653,
+    "6": 6703,
+    "2": 4590,
+    "4": 2803,
+    "0": 2483,
+    "5": 1220,
+    "3": 1548
+  },
+  "model": "kmeans",
+  "mode": "audio",
+  "data_split": "full",
+  "n_samples": 24000
+}

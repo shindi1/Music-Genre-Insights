@@ -20,9 +20,9 @@
     "0": 6665,
     "4": 3047
   },
-  "bic": 300102.3826976105,
-  "aic": 297442.1515006409,
-  "log_likelihood_per_sample": -6.183003156263352,
+  "bic": 300102.38269761024,
+  "aic": 297442.15150064067,
+  "log_likelihood_per_sample": -6.183003156263347,
   "converged": true,
   "n_iter": 54,
   "covariance_type": "full",

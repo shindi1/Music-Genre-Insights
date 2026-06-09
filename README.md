@@ -1,3 +1,5 @@
+# CSCI 467 - FINAL PROJECT
+
 # Cade's Data Pipeline — Music Sentiment & Genre Classification
 
 Production-grade data scraping, cleaning, matching, and preprocessing pipeline for the
